@@ -9,7 +9,6 @@
 #import "JMHoledView.h"
 
 #pragma mark - holes objects
-#define SYSTEM_VERSION_LESS_THAN(v) ([[[UIDevice currentDevice] systemVersion] compare:v options:NSNumericSearch] == NSOrderedAscending)
 
 @interface JMHole : NSObject
 @property (assign) JMHoleType holeType;
@@ -21,10 +20,6 @@
 @interface JMCircleHole : JMHole
 @property (assign) CGPoint holeCenterPoint;
 @property (assign) CGFloat holeDiameter;
-/**
- *  height scale factor（for oval hole）
- */
-@property (nonatomic, assign) CGFloat hScale;
 @end
 
 @implementation JMCircleHole
@@ -52,7 +47,7 @@
 @end
 
 @interface JMHoledView ()
-@property (strong, nonatomic) NSMutableArray <JMHole *> *holes;  //Array of JMHole
+@property (strong, nonatomic) NSMutableArray *holes;  //Array of JMHole
 @end
 
 @implementation JMHoledView
@@ -85,7 +80,6 @@
 
 - (void)setup
 {
-    _textFont = [UIFont systemFontOfSize:14.0f];
     _holes = [NSMutableArray new];
     self.backgroundColor = [UIColor clearColor];
     _dimingColor = [[UIColor blackColor] colorWithAlphaComponent:0.5f];
@@ -128,9 +122,9 @@
         } else if (hole.holeType == JMHoleTypeCirle) {
             JMCircleHole *circleHole = (JMCircleHole *)hole;
             CGRect rectInView = CGRectMake(floorf(circleHole.holeCenterPoint.x - circleHole.holeDiameter*0.5f),
-                                           floorf(circleHole.holeCenterPoint.y - circleHole.holeDiameter*0.5f) + circleHole.holeDiameter * (1 - circleHole.hScale) * .5f,
+                                           floorf(circleHole.holeCenterPoint.y - circleHole.holeDiameter*0.5f),
                                            circleHole.holeDiameter,
-                                           circleHole.holeDiameter * circleHole.hScale);
+                                           circleHole.holeDiameter);
             CGContextSetFillColorWithColor( context, [UIColor clearColor].CGColor );
             CGContextSetBlendMode(context, kCGBlendModeClear);
             CGContextFillEllipseInRect( context, rectInView );
@@ -142,25 +136,17 @@
 
 #pragma mark - Add methods
 
-- (NSInteger)addHoleCircleCenteredOnPosition:(CGPoint)centerPoint diameter:(CGFloat)diameter
-{
-    return [self addHoleCircleCenteredOnPosition:centerPoint diameter:diameter hScale:1.f];
-}
-
-- (NSInteger)addHoleCircleCenteredOnPosition:(CGPoint)centerPoint diameter:(CGFloat)diameter hScale:(CGFloat)hScale
+- (NSInteger)addHoleCircleCenteredOnPosition:(CGPoint)centerPoint andDiameter:(CGFloat)diameter
 {
     JMCircleHole *circleHole = [JMCircleHole new];
     circleHole.holeCenterPoint = centerPoint;
     circleHole.holeDiameter = diameter;
-    circleHole.hScale = hScale;
     circleHole.holeType = JMHoleTypeCirle;
     [self.holes addObject:circleHole];
     [self setNeedsDisplay];
     
     return [self.holes indexOfObject:circleHole];
 }
-
-
 
 - (NSInteger)addHoleRectOnRect:(CGRect)rect
 {
@@ -173,7 +159,7 @@
     return [self.holes indexOfObject:rectHole];
 }
 
-- (NSInteger)addHoleRoundedRectOnRect:(CGRect)rect cornerRadius:(CGFloat)cornerRadius
+- (NSInteger)addHoleRoundedRectOnRect:(CGRect)rect withCornerRadius:(CGFloat)cornerRadius
 {
     JMRoundedRectHole *rectHole = [JMRoundedRectHole new];
     rectHole.holeRect = rect;
@@ -197,171 +183,11 @@
     return [self.holes indexOfObject:customHole];
 }
 
-- (void)addHoleCircleCenteredOnPosition:(CGPoint)centerPoint
-                                diameter:(CGFloat)diameter
-                                    text:(NSString *)text
-                              onPosition:(JMHolePosition)pos
-                                  margin:(CGFloat) margin
-{
-    
-    [self addHoleCircleCenteredOnPosition:centerPoint
-                                 diameter:diameter];
-    
-    [self buildLabel:centerPoint holeWidth:diameter holeHeight:diameter text:text onPosition:pos margin:margin];
-    
-}
-
-- (void)addHoleRectOnRect:(CGRect)rect
-                     text:(NSString *)text
-               onPosition:(JMHolePosition)pos
-                   margin:(CGFloat) margin
-{
-    [self addHoleRectOnRect:rect];
-    [self buildLabel:CGPointMake(rect.origin.x+(rect.size.width/2),rect.origin.y+(rect.size.height/2))
-           holeWidth:rect.size.width
-          holeHeight:rect.size.height
-            text:text onPosition:pos
-              margin:margin];
-}
-
--(void)addHoleRoundedRectOnRect:(CGRect)rect
-                   cornerRadius:(CGFloat)cornerRadius
-                           text:(NSString *)text
-                     onPosition:(JMHolePosition)pos
-                         margin:(CGFloat) margin
-{
-    [self addHoleRoundedRectOnRect:rect
-                      cornerRadius:cornerRadius];
-    
-    [self buildLabel:CGPointMake(rect.origin.x+(rect.size.width/2),rect.origin.y+(rect.size.height/2))
-           holeWidth:rect.size.width
-          holeHeight:rect.size.height
-                text:text onPosition:pos
-              margin:margin];
-}
-
-
-
-- (void)addHoleRoundedRectOnRect:(CGRect)rect
-                    cornerRadius:(CGFloat)cornerRadius
-                  attributedText:(NSAttributedString *)text
-                      onPosition:(JMHolePosition)position
-                          margin:(CGFloat)margin
-{
-    [self addHoleRoundedRectOnRect:rect
-                      cornerRadius:cornerRadius];
-    
-    [self buildLabel:CGPointMake(rect.origin.x+(rect.size.width/2),rect.origin.y+(rect.size.height/2))
-           holeWidth:rect.size.width
-          holeHeight:rect.size.height
-            attrText:text
-          onPosition:position
-              margin:margin];
-    
-}
-
 - (void)removeHoles
 {
     [self removeCustomViews];
     [self.holes removeAllObjects];
     [self setNeedsDisplay];
-}
-
--(UILabel*)buildLabel:(CGPoint)point
-            holeWidth:(CGFloat)width
-           holeHeight:(CGFloat)height
-                 attrText:(NSAttributedString*)attrText
-           onPosition:(JMHolePosition)pos
-               margin:(CGFloat) margin
-{
-    NSString *text = attrText.string;
-    CGPoint centerPoint = point;
-    CGFloat holeWidthHalf = (width/2) + margin;
-    CGFloat holeHeightHalf = (height/2) + margin;
-    
-    CGRect frame;
-    CGFloat x;
-    CGFloat y;
-    
-    NSDictionary *attrs = [attrText attributesAtIndex:0 longestEffectiveRange:nil inRange:NSMakeRange(0, text.length)];
-    CGSize fontSize = [text sizeWithAttributes:
-                attrs];
-    switch (pos) {
-        case JMPositionTop:
-            x = (centerPoint.x)-(fontSize.width/2);
-            y = (centerPoint.y-holeHeightHalf)-fontSize.height;
-            break;
-        case JMPositionTopRightCorner:
-            x = (centerPoint.x+holeWidthHalf);
-            y = (centerPoint.y-holeHeightHalf)-fontSize.height;
-            break;
-        case JMPositionRight:
-            x = (centerPoint.x+holeWidthHalf);
-            y = (centerPoint.y)-(fontSize.height/2);
-            break;
-        case JMPositionBottomRightCorner:
-            x = centerPoint.x+holeWidthHalf;
-            y = centerPoint.y+holeHeightHalf;
-            break;
-        case JMPositionBottom:
-            x = (centerPoint.x)-(fontSize.width/2);
-            y = (centerPoint.y+holeHeightHalf);
-            break;
-        case JMPositionBottomLeftCorner:
-            x = (centerPoint.x-holeWidthHalf)-(fontSize.width);
-            y = (centerPoint.y+holeHeightHalf);
-            break;
-        case JMPositionLeft:
-            x = (centerPoint.x-holeWidthHalf)-(fontSize.width);
-            y = (centerPoint.y)-(fontSize.height/2);
-            break;
-        case JMPositionTopLeftCorner:
-            x = (centerPoint.x-holeWidthHalf)-(fontSize.width);
-            y = (centerPoint.y-holeHeightHalf)-(fontSize.height/2);
-            break;
-        default:
-            x = centerPoint.x;
-            y = centerPoint.y;
-            break;
-    }
-    frame = CGRectMake(x,y, fontSize.width, fontSize.height);
-    
-    UILabel *label = [[UILabel alloc] initWithFrame:frame];
-    [label setBackgroundColor:[UIColor clearColor]];
-    [label setTextColor:[UIColor whiteColor]];
-    label.numberOfLines = 0;
-    label.textAlignment = NSTextAlignmentCenter;
-    label.attributedText = attrText;
-    
-    if ([self.holeViewDelegate respondsToSelector:@selector(holedView:willAddLabel:atIndex:)])
-    {
-        NSPredicate *predicate = [NSPredicate predicateWithBlock:^BOOL(JMHole *evaluatedObject, NSDictionary<NSString *,id> * _Nullable bindings) {
-            return ![evaluatedObject isKindOfClass:[JMCustomRectHole class]];
-        }];
-        NSArray *labels = [self.holes filteredArrayUsingPredicate:predicate];
-        NSInteger index = labels.count-1;
-        [self.holeViewDelegate holedView:self willAddLabel:label atIndex:index];
-    }
-    
-    [self addHCustomView:label onRect:label.frame];
-    
-    return label;
-}
-
--(UILabel*)buildLabel:(CGPoint)point
-            holeWidth:(CGFloat)width
-           holeHeight:(CGFloat)height
-                 text:(NSString*)text
-           onPosition:(JMHolePosition)pos
-               margin:(CGFloat) margin
-{
-    NSAttributedString *attrString = [[NSAttributedString alloc] initWithString:text
-                                                                     attributes:@{
-                                                                                  NSFontAttributeName:
-                                                                                      self.textFont
-                                                                                  }];
-   UILabel *label = [self buildLabel:point holeWidth:width holeHeight:height attrText:attrString onPosition:pos margin:margin];
-    return label;
 }
 
 #pragma mark - Overided setter
@@ -398,7 +224,7 @@
         } else if (hole.holeType == JMHoleTypeCirle) {
             JMCircleHole *circleHole = (JMCircleHole *)hole;
             CGRect rectInView = CGRectMake(floorf(circleHole.holeCenterPoint.x - circleHole.holeDiameter*0.5f),
-                                           floorf(circleHole.holeCenterPoint.y - circleHole.holeDiameter*0.5f),
+                                           floorf(circleHole.holeCenterPoint.x - circleHole.holeDiameter*0.5f),
                                            circleHole.holeDiameter,
                                            circleHole.holeDiameter);
             if (CGRectContainsPoint(rectInView, touchLocation)) {

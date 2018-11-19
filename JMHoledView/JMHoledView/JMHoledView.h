@@ -15,24 +15,11 @@ typedef NS_ENUM(NSInteger, JMHoleType)
     JMHoleTypeRoundedRect,
     JMHoleTypeCustomRect
 };
-typedef NS_ENUM(NSInteger, JMHolePosition)
-{
-    JMPositionTop,
-    JMPositionTopRightCorner,
-    JMPositionRight,
-    JMPositionBottomRightCorner,
-    JMPositionBottom,
-    JMPositionBottomLeftCorner,
-    JMPositionLeft,
-    JMPositionTopLeftCorner
-};
 
 @class JMHoledView;
 @protocol JMHoledViewDelegate <NSObject>
 
-@optional
 - (void)holedView:(JMHoledView *)holedView didSelectHoleAtIndex:(NSUInteger)index;
-- (void)holedView:(JMHoledView *)holedView willAddLabel:(UILabel*)label atIndex:(NSUInteger)index;
 
 @end
 
@@ -41,44 +28,11 @@ typedef NS_ENUM(NSInteger, JMHolePosition)
 
 @property (strong, nonatomic) UIColor *dimingColor;
 @property (weak, nonatomic) id <JMHoledViewDelegate> holeViewDelegate;
-@property (strong, nonatomic) UIFont *textFont;
 
-- (NSInteger)addHoleCircleCenteredOnPosition:(CGPoint)centerPoint
-                                    diameter:(CGFloat)diamter;
-
-- (NSInteger)addHoleCircleCenteredOnPosition:(CGPoint)centerPoint
-                                    diameter:(CGFloat)diameter
-                                      hScale:(CGFloat)hScale;
-
+- (NSInteger)addHoleCircleCenteredOnPosition:(CGPoint)centerPoint andDiameter:(CGFloat)diamter;
 - (NSInteger)addHoleRectOnRect:(CGRect)rect;
-
-- (NSInteger)addHoleRoundedRectOnRect:(CGRect)rect
-                         cornerRadius:(CGFloat)cornerRadius;
-
+- (NSInteger)addHoleRoundedRectOnRect:(CGRect)rect withCornerRadius:(CGFloat)cornerRadius;
 - (NSInteger)addHCustomView:(UIView *)customView onRect:(CGRect)rect;
-
-- (void)addHoleCircleCenteredOnPosition:(CGPoint)centerPoint
-                               diameter:(CGFloat)diameter
-                                   text:(NSString *)text
-                             onPosition:(JMHolePosition)position
-                                 margin:(CGFloat)margin;
-
-- (void)addHoleRectOnRect:(CGRect)rect
-                     text:(NSString *)text
-               onPosition:(JMHolePosition)position
-                   margin:(CGFloat)margin;
-
-- (void)addHoleRoundedRectOnRect:(CGRect)rect
-                    cornerRadius:(CGFloat)cornerRadius
-                            text:(NSString *)text
-                      onPosition:(JMHolePosition)position
-                          margin:(CGFloat)margin;
-
-- (void)addHoleRoundedRectOnRect:(CGRect)rect
-                    cornerRadius:(CGFloat)cornerRadius
-                            attributedText:(NSAttributedString *)text
-                      onPosition:(JMHolePosition)position
-                          margin:(CGFloat)margin;
 
 - (void)removeHoles;
 
